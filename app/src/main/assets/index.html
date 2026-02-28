@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS TRADER — AI Analyst</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg: #080a0f;
+  --surface: #111520;
+  --card: #161b28;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --accent: #e8b84b;
+  --accent-glow: rgba(232,184,75,0.15);
+  --accent-glow2: rgba(232,184,75,0.07);
+  --green: #22d3a0;
+  --red: #f04f6a;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --text: #e2e8f4;
+  --text2: #8896b0;
+  --text3: #3d4a5c;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  min-height: 100vh;
+  padding-bottom: 40px;
+}
+
+/* BG orbs */
+.orb { position: fixed; border-radius: 50%; filter: blur(90px); pointer-events: none; z-index: 0; transition: background 0.5s; }
+.orb1 { width: 500px; height: 500px; top: -200px; left: -150px; background: var(--accent-glow); opacity: 0.6; }
+.orb2 { width: 300px; height: 300px; bottom: -100px; right: -80px; background: rgba(34,211,160,0.06); opacity: 0.6; }
+.scan { position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px); }
+
+.wrap { position: relative; z-index: 1; max-width: 520px; margin: 0 auto; padding: 0 14px; }
+
+/* ── TOPBAR ── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,10,15,0.92);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 14px;
+  display: flex; align-items: center; height: 54px; gap: 10px;
+}
+.topbar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--accent), rgba(232,184,75,0.1), transparent);
+  transition: background 0.4s;
+}
+.logo-box {
+  width: 34px; height: 34px; border-radius: 8px;
+  background: var(--accent); display: flex; align-items: center; justify-content: center;
+  font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: #000;
+  flex-shrink: 0; box-shadow: 0 0 14px var(--accent-glow);
+  transition: background 0.4s, box-shadow 0.4s;
+}
+.logo-name {
+  font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800;
+  color: var(--text); letter-spacing: -0.3px;
+}
+.logo-name span { color: var(--accent); transition: color 0.4s; }
+
+.pair-tabs { display: flex; gap: 6px; margin-left: auto; }
+.ptab {
+  height: 30px; padding: 0 12px; border-radius: 6px;
+  font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1px;
+  cursor: pointer; border: 1px solid var(--border2); background: transparent;
+  color: var(--text3); display: flex; align-items: center; gap: 6px;
+  transition: all 0.22s;
+}
+.ptab:hover { color: var(--text2); border-color: rgba(255,255,255,0.15); }
+.ptab.ag { background: rgba(232,184,75,0.1); border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+.ptab.ab { background: rgba(247,146,26,0.1); border-color: #f7921a; color: #f7921a; box-shadow: 0 0 10px rgba(247,146,26,0.15); }
+.tdot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.tdot.g { background: #e8b84b; box-shadow: 0 0 5px #e8b84b; }
+.tdot.b { background: #f7921a; box-shadow: 0 0 5px #f7921a; }
+
+/* ── SECTION TITLE ── */
+.stitle {
+  font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 2.5px;
+  color: var(--text3); text-transform: uppercase;
+  display: flex; align-items: center; gap: 8px; margin: 20px 0 10px;
+}
+.stitle::before { content: ''; width: 3px; height: 11px; background: var(--accent); border-radius: 2px; flex-shrink: 0; transition: background 0.4s; box-shadow: 0 0 7px var(--accent); }
+.stitle::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── PAIR HERO ── */
+.pair-hero {
+  border-radius: 14px; padding: 16px 18px; margin-bottom: 4px;
+  border: 1px solid rgba(232,184,75,0.2);
+  background: linear-gradient(135deg, rgba(232,184,75,0.07), rgba(232,184,75,0.02));
+  display: flex; align-items: center; justify-content: space-between;
+  transition: all 0.4s; position: relative; overflow: hidden;
+}
+.pair-hero::before {
+  content: ''; position: absolute; top: -30px; right: -30px;
+  width: 120px; height: 120px; border-radius: 50%;
+  background: var(--accent-glow); filter: blur(30px); transition: background 0.4s;
+}
+.ph-name { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; transition: color 0.4s; }
+.ph-sub { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 2px; color: var(--text3); margin-top: 4px; text-transform: uppercase; }
+.ph-tags { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+.ptag-sm {
+  height: 19px; padding: 0 8px; border-radius: 4px; border: 1px solid;
+  font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.5px;
+  display: flex; align-items: center; transition: all 0.4s;
+}
+
+/* ── FORM ── */
+.field { margin-bottom: 10px; }
+.fl { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1.5px; color: var(--text3); text-transform: uppercase; margin-bottom: 5px; }
+.field select, .field input {
+  width: 100%; height: 40px; padding: 0 12px;
+  background: var(--surface); border: 1px solid var(--border2);
+  color: var(--text); border-radius: 9px;
+  font-family: 'Inter', sans-serif; font-size: 13px;
+  outline: none; transition: all 0.2s; appearance: none;
+}
+.field select:focus, .field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow2); }
+.field input::placeholder { color: var(--text3); }
+
+.auto-pill {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 13px; border-radius: 9px; margin-bottom: 10px;
+  border: 1px solid rgba(167,139,250,0.2); background: rgba(167,139,250,0.05);
+  font-size: 12px; color: rgba(167,139,250,0.7); line-height: 1.5;
+}
+
+/* ── UPLOAD ── */
+.upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.uzone {
+  aspect-ratio: 1.3; border-radius: 11px; border: 1.5px dashed var(--border2);
+  background: var(--surface); cursor: pointer; position: relative; overflow: hidden;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  transition: all 0.22s;
+}
+.uzone:hover { border-color: var(--accent); background: var(--accent-glow2); }
+.uzone.done { border-style: solid; border-color: var(--green); }
+.uzone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.uz-tf { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+.uz-lb { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 1.5px; color: var(--text3); margin-top: 4px; text-transform: uppercase; }
+.uz-prev { position: absolute; inset: 0; background-size: cover; background-position: center; opacity: 0.55; border-radius: 10px; }
+.uz-ok { position: absolute; inset: 0; background: rgba(34,211,160,0.1); display: flex; align-items: center; justify-content: center; font-size: 24px; border-radius: 10px; }
+.upload-hint { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3); margin-top: 7px; line-height: 1.7; }
+
+/* ── IND LIST ── */
+.ind-list { display: flex; flex-direction: column; gap: 5px; }
+.ind-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: 9px;
+  background: var(--surface); border: 1px solid var(--border);
+}
+.idot { width: 8px; height: 8px; border-radius: 3px; flex-shrink: 0; }
+.iname { font-size: 13px; font-weight: 500; flex: 1; }
+.ival { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--text3); }
+.btc-warn {
+  padding: 10px 13px; border-radius: 9px; margin-top: 8px;
+  background: rgba(247,146,26,0.06); border: 1px solid rgba(247,146,26,0.2);
+  border-left: 3px solid #f7921a; font-size: 11px; color: rgba(247,146,26,0.65);
+  line-height: 1.6; display: none;
+}
+
+/* ── ANALYZE BTN ── */
+.abtn {
+  width: 100%; height: 50px; border-radius: 12px; margin-top: 4px;
+  border: 1px solid var(--accent); background: var(--accent-glow2);
+  color: var(--accent); font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+  letter-spacing: 1px; cursor: pointer; transition: all 0.22s;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  text-transform: uppercase; position: relative; overflow: hidden;
+}
+.abtn::before {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(135deg, var(--accent-glow), transparent);
+  opacity: 0; transition: opacity 0.22s;
+}
+.abtn:hover:not(:disabled)::before { opacity: 1; }
+.abtn:hover:not(:disabled) { box-shadow: 0 0 28px var(--accent-glow); transform: translateY(-1px); }
+.abtn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+.abtn.loading { animation: pulse 1.2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.55} }
+.btn-i { font-size: 17px; transition: transform 0.22s; }
+.abtn:hover .btn-i { transform: scale(1.2) rotate(10deg); }
+
+.disc {
+  font-family: 'DM Mono', monospace; font-size: 9px; color: var(--text3);
+  text-align: center; line-height: 1.6; margin-top: 10px;
+}
+
+/* ── RESULT AREA ── */
+.result-area { margin-top: 4px; }
+
+/* Loading */
+.loading-card {
+  border-radius: 14px; padding: 32px 20px;
+  background: var(--surface); border: 1px solid var(--border);
+  display: flex; flex-direction: column; align-items: center; gap: 20px; text-align: center;
+}
+.ring-wrap { width: 60px; height: 60px; position: relative; }
+.ring-wrap svg { width: 100%; height: 100%; animation: spin 1s linear infinite; }
+@keyframes spin { to{transform:rotate(360deg)} }
+.rt { fill:none; stroke:var(--border2); stroke-width:3; }
+.rf { fill:none; stroke:var(--accent); stroke-width:3; stroke-linecap:round; stroke-dasharray:120; stroke-dashoffset:88; transition:stroke 0.4s; }
+.lh { font-family:'Syne',sans-serif; font-size:15px; font-weight:700; }
+.lsteps { display:flex; flex-direction:column; gap:5px; width:100%; }
+.ls { font-family:'DM Mono',monospace; font-size:10px; color:var(--text3); opacity:0; transition:all 0.3s; transform:translateX(-6px); text-align:left; }
+.ls.on { opacity:1; transform:none; }
+
+/* Signal hero */
+.sig-hero {
+  border-radius: 14px; padding: 20px; margin-bottom: 12px;
+  border: 1px solid; position: relative; overflow: hidden;
+}
+.sig-hero::before { content:''; position:absolute; top:-40px; right:-40px; width:160px; height:160px; border-radius:50%; filter:blur(50px); pointer-events:none; }
+.sig-hero.buy { background:linear-gradient(135deg,rgba(34,211,160,0.08),rgba(34,211,160,0.02)); border-color:rgba(34,211,160,0.25); }
+.sig-hero.buy::before { background:rgba(34,211,160,0.15); }
+.sig-hero.sell { background:linear-gradient(135deg,rgba(240,79,106,0.08),rgba(240,79,106,0.02)); border-color:rgba(240,79,106,0.25); }
+.sig-hero.sell::before { background:rgba(240,79,106,0.15); }
+.sig-hero.wait { background:linear-gradient(135deg,rgba(232,184,75,0.07),transparent); border-color:rgba(232,184,75,0.2); }
+.sig-hero.wait::before { background:rgba(232,184,75,0.1); }
+
+.sh-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.sig-lbl { font-family:'DM Mono',monospace; font-size:9px; letter-spacing:2px; color:var(--text3); text-transform:uppercase; margin-bottom:5px; }
+.sig-word { font-family:'Syne',sans-serif; font-size:44px; font-weight:800; letter-spacing:-1px; line-height:1; }
+.sig-word.buy  { color:var(--green); text-shadow:0 0 28px rgba(34,211,160,0.4); }
+.sig-word.sell { color:var(--red); text-shadow:0 0 28px rgba(240,79,106,0.4); }
+.sig-word.wait { color:var(--accent); }
+.sig-sub { font-size:11px; color:var(--text2); margin-top:6px; }
+
+.score-c { text-align:center; flex-shrink:0; }
+.score-r { width:62px; height:62px; position:relative; }
+.score-r svg { width:100%; height:100%; }
+.score-v {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-family:'Syne',sans-serif; font-size:15px; font-weight:800;
+}
+.score-lb { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:1px; color:var(--text3); margin-top:3px; text-transform:uppercase; }
+
+/* Trade grid */
+.tgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.tbox {
+  border-radius:11px; padding:12px 13px;
+  background:var(--surface); border:1px solid var(--border);
+  position:relative; overflow:hidden;
+}
+.tbox::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:11px 11px 0 0; }
+.tbox.te::before { background:var(--accent); }
+.tbox.ts::before { background:var(--red); }
+.tbox.tp::before { background:var(--green); }
+.tbox.tn::before { background:rgba(255,255,255,0.1); }
+.tbl { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:1.5px; color:var(--text3); text-transform:uppercase; margin-bottom:5px; }
+.tbv { font-family:'Syne',sans-serif; font-size:17px; font-weight:800; line-height:1.1; }
+.tbv.ac { color:var(--accent); }
+.tbv.re { color:var(--red); }
+.tbv.gr { color:var(--green); }
+.tbv.or { color:#fb923c; }
+.tbv.sm { font-size:13px; }
+.tbs { font-family:'DM Mono',monospace; font-size:9px; color:var(--text3); margin-top:3px; }
+
+/* Zones */
+.zgrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.zbox {
+  border-radius:11px; padding:11px 13px;
+  background:var(--surface); border:1px solid var(--border);
+  border-left:3px solid; transition:transform 0.15s;
+}
+.zbox:active { transform:translateX(2px); }
+.zbox.res { border-left-color:var(--red); }
+.zbox.sup { border-left-color:var(--green); }
+.zbox.supply { border-left-color:rgba(240,79,106,0.45); }
+.zbox.demand { border-left-color:rgba(34,211,160,0.45); }
+.zbox.conf { border-left-color:var(--purple); }
+.zbox.pos  { border-left-color:var(--blue); }
+.zbl { font-family:'DM Mono',monospace; font-size:8px; letter-spacing:1px; color:var(--text3); text-transform:uppercase; margin-bottom:4px; }
+.zbv { font-size:12px; font-weight:600; color:var(--text); }
+.zbv.re { color:var(--red); }
+.zbv.gr { color:var(--green); }
+.zbv.pu { color:var(--purple); }
+.zbv.bl { color:var(--blue); }
+.zbs { font-family:'DM Mono',monospace; font-size:9px; color:var(--text3); margin-top:2px; }
+
+/* Indicator status */
+.igrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:12px; }
+.ibox {
+  display:flex; align-items:center; gap:10px;
+  padding:10px 12px; border-radius:11px;
+  background:var(--surface); border:1px solid var(--border);
+  border-left:3px solid rgba(255,255,255,0.07);
+}
+.ibox.bull { border-left-color:var(--green); }
+.ibox.bear { border-left-color:var(--red); }
+.iico { font-size:15px; flex-shrink:0; }
+.inm { font-size:11px; font-weight:600; }
+.ivl { font-family:'DM Mono',monospace; font-size:9px; color:var(--text3); margin-top:2px; }
+
+/* Analysis card */
+.acard {
+  border-radius:12px; padding:16px; margin-bottom:12px;
+  background:var(--surface); border:1px solid var(--border);
+  font-size:13px; line-height:1.85; color:var(--text2); white-space:pre-wrap;
+  font-weight:300; position:relative;
+}
+.acard::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  border-radius:12px 12px 0 0;
+  background:linear-gradient(90deg, var(--accent), transparent); transition:background 0.4s;
+}
+
+/* Footer */
+.rfooter { display:flex; align-items:center; gap:7px; flex-wrap:wrap; margin-bottom:12px; }
+.fchip {
+  height:30px; padding:0 12px; border-radius:7px;
+  display:flex; align-items:center; gap:5px;
+  background:var(--surface); border:1px solid var(--border);
+  font-family:'DM Mono',monospace; font-size:10px; color:var(--text2);
+}
+.fstars { color:#f5d06e; font-size:12px; letter-spacing:1px; }
+.cbtn {
+  margin-left:auto; height:30px; padding:0 14px; border-radius:7px;
+  background:transparent; border:1px solid var(--border2);
+  color:var(--text3); font-family:'DM Mono',monospace; font-size:10px; letter-spacing:1px;
+  cursor:pointer; transition:all 0.2s; text-transform:uppercase;
+}
+.cbtn:hover { border-color:var(--accent); color:var(--accent); }
+.disc-sm {
+  padding:10px 14px; border-radius:9px; margin-bottom:4px;
+  background:rgba(240,79,106,0.04); border:1px solid rgba(240,79,106,0.1);
+  font-family:'DM Mono',monospace; font-size:9px; color:var(--text3);
+  letter-spacing:0.5px; line-height:1.7; text-align:center;
+}
+
+/* Fade in */
+@keyframes fadein { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+.fadein { animation:fadein 0.35s ease; }
+</style>
+</head>
+<body>
+<div class="orb orb1" id="orb1"></div>
+<div class="orb orb2"></div>
+<div class="scan"></div>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="logo-box" id="logoBox">N</div>
+  <div class="logo-name">NEXUS <span id="logoAcc">TRADER</span></div>
+  <div class="pair-tabs">
+    <button class="ptab ag" id="tg" onclick="sp('gold')"><div class="tdot g"></div>XAU/USD</button>
+    <button class="ptab"    id="tb" onclick="sp('btc')"><div class="tdot b"></div>BTC/USD</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- PAIR HERO -->
+  <div class="stitle" id="st1">Pair Aktif</div>
+  <div class="pair-hero" id="pairHero">
+    <div>
+      <div class="ph-name" id="phName" style="color:var(--accent)">XAU / USD</div>
+      <div class="ph-sub" id="phSub">Gold · Spot Forex · Day Trading</div>
+      <div class="ph-tags" id="phTags"></div>
+    </div>
+    <div style="font-size:36px;opacity:0.4" id="phIcon">⚡</div>
+  </div>
+
+  <!-- SESI -->
+  <div class="stitle">Sesi & Catatan</div>
+  <div class="field">
+    <div class="fl">Sesi Trading</div>
+    <select id="session">
+      <option value="London Open (14:00–17:00 WIB)">🇬🇧  London Open  14:00–17:00</option>
+      <option value="London/NY Overlap (19:00–21:00 WIB)">⚡  Overlap  19:00–21:00</option>
+      <option value="NY Open (19:30–23:00 WIB)" selected>🇺🇸  NY Open  19:30–23:00</option>
+      <option value="NY Late (23:00–01:00 WIB)">🌙  NY Late  23:00–01:00</option>
+      <option value="Asia Session (07:00–13:00 WIB)">⚠️  Asia  07:00–13:00</option>
+    </select>
+  </div>
+  <div class="auto-pill">
+    <span style="font-size:18px">🤖</span>
+    <span>ATR & harga terbaca <strong style="color:var(--purple)">otomatis</strong> dari screenshot chart kamu</span>
+  </div>
+  <div class="field">
+    <div class="fl">Catatan (opsional)</div>
+    <input type="text" id="notes" placeholder="cth: ada news NFP jam 21:30 WIB">
+  </div>
+
+  <!-- UPLOAD -->
+  <div class="stitle">Screenshot Chart</div>
+  <div class="upload-grid">
+    <div class="uzone" id="zh4" onclick="tu('h4')">
+      <input type="file" id="fh4" accept="image/*" onchange="hu('h4',event)">
+      <div class="uz-tf" style="color:var(--accent)" id="u4">H4</div>
+      <div class="uz-lb">Trend Utama</div>
+    </div>
+    <div class="uzone" id="zh1" onclick="tu('h1')">
+      <input type="file" id="fh1" accept="image/*" onchange="hu('h1',event)">
+      <div class="uz-tf" style="color:var(--green)">H1</div>
+      <div class="uz-lb">EMA + RSI</div>
+    </div>
+    <div class="uzone" id="zm15" onclick="tu('m15')">
+      <input type="file" id="fm15" accept="image/*" onchange="hu('m15',event)">
+      <div class="uz-tf" style="color:var(--blue)">M15</div>
+      <div class="uz-lb">PSAR Flip</div>
+    </div>
+    <div class="uzone" id="zm5" onclick="tu('m5')">
+      <input type="file" id="fm5" accept="image/*" onchange="hu('m5',event)">
+      <div class="uz-tf" style="color:var(--red)">M5</div>
+      <div class="uz-lb">Entry Timing</div>
+    </div>
+  </div>
+  <div class="upload-hint">✓ Tampilkan ~80–100 candle per chart &nbsp;·&nbsp; ✓ Semua 6 indikator aktif di chart</div>
+
+  <!-- INDIKATOR -->
+  <div class="stitle">Indikator Aktif di Chart</div>
+  <div class="ind-list">
+    <div class="ind-row"><div class="idot" style="background:var(--accent)"></div><div class="iname">Parabolic SAR</div><div class="ival">0.030 / 0.250</div></div>
+    <div class="ind-row"><div class="idot" style="background:#fbbf24"></div><div class="iname">EMA 21</div><div class="ival">Kuning</div></div>
+    <div class="ind-row"><div class="idot" style="background:#f1f5f9"></div><div class="iname">EMA 55</div><div class="ival">Putih</div></div>
+    <div class="ind-row"><div class="idot" style="background:var(--blue)"></div><div class="iname">RSI (14)</div><div class="ival" id="rsiV">35 / 50 / 65</div></div>
+    <div class="ind-row"><div class="idot" style="background:var(--red)"></div><div class="iname">MACD (12,26,9)</div><div class="ival">Histogram</div></div>
+    <div class="ind-row"><div class="idot" style="background:#fb923c"></div><div class="iname">ATR (14)</div><div class="ival">Auto-baca</div></div>
+  </div>
+  <div class="btc-warn" id="bw">₿ BTC: Round number $60K/$65K/$70K/$75K/$80K — Volatilitas 3–5× lebih tinggi dari Gold!</div>
+
+  <!-- BUTTON -->
+  <div class="stitle">Analisa</div>
+  <button class="abtn" id="abtn" onclick="run()">
+    <span class="btn-i">⚡</span> Analisa Sekarang
+  </button>
+  <div class="disc">For educational purpose only · Bukan saran finansial · Max risk 1–2%</div>
+
+  <!-- RESULT -->
+  <div class="result-area" id="resultArea"></div>
+
+</div>
+
+<script>
+let pair = 'gold';
+const imgs = {h4:null,h1:null,m15:null,m5:null};
+
+const C = {
+  gold:{
+    main:'#e8b84b',glow:'rgba(232,184,75,0.15)',glow2:'rgba(232,184,75,0.07)',
+    rsi:'35 / 50 / 65',name:'XAU/USD (GOLD)',
+    pcName:'XAU / USD',pcSub:'Gold · Spot Forex · Day Trading',
+    tags:['PSAR 0.030/0.250','RSI 35/50/65','EMA 21/55','SNR + SND'],
+    icon:'✨',btcWarn:false,
+    roundNums:'Round number: $2600/$2650/$2700/$2750 dst',
+    slNote:'SL min $1.50 dari entry. SL = bawah/atas zona + 1.5× ATR',
+    atrNote:'ATR M15 Gold biasanya $8–$20',
+    newsNote:'NFP, CPI, FOMC, Fed Speech',
+  },
+  btc:{
+    main:'#f7921a',glow:'rgba(247,146,26,0.15)',glow2:'rgba(247,146,26,0.07)',
+    rsi:'30 / 50 / 70',name:'BTC/USD (BITCOIN)',
+    pcName:'BTC / USD',pcSub:'Bitcoin · Crypto · Day Trading',
+    tags:['PSAR 0.030/0.250','RSI 30/50/70','EMA 21/55','SNR + SND'],
+    icon:'₿',btcWarn:true,
+    roundNums:'Round number: $60K/$65K/$70K/$75K/$80K dst',
+    slNote:'SL min $200–$500 dari entry. SL = bawah/atas zona + 2× ATR',
+    atrNote:'ATR M15 BTC biasanya $200–$800',
+    newsNote:'FOMC, CPI, SEC news, major exchange/whale news',
+  }
+};
+
+function cfg(){return C[pair];}
+
+function sp(p){
+  pair=p; const c=cfg();
+  const r=document.documentElement.style;
+  r.setProperty('--accent',c.main);
+  r.setProperty('--accent-glow',c.glow);
+  r.setProperty('--accent-glow2',c.glow2);
+  document.getElementById('orb1').style.background=c.glow;
+  document.getElementById('logoBox').style.background=c.main;
+  document.getElementById('logoBox').style.boxShadow=`0 0 14px ${c.glow}`;
+  document.getElementById('logoAcc').style.color=c.main;
+  // topbar line
+  document.querySelector('.topbar::after');
+  document.getElementById('tg').className='ptab'+(p==='gold'?' ag':'');
+  document.getElementById('tb').className='ptab'+(p==='btc'?' ab':'');
+  // pair hero
+  const ph=document.getElementById('pairHero');
+  ph.style.borderColor=p==='gold'?'rgba(232,184,75,0.2)':'rgba(247,146,26,0.2)';
+  ph.style.background=p==='gold'
+    ?'linear-gradient(135deg,rgba(232,184,75,0.07),rgba(232,184,75,0.02))'
+    :'linear-gradient(135deg,rgba(247,146,26,0.07),rgba(247,146,26,0.02))';
+  document.getElementById('phName').textContent=c.pcName;
+  document.getElementById('phName').style.color=c.main;
+  document.getElementById('phSub').textContent=c.pcSub;
+  document.getElementById('phIcon').textContent=c.icon;
+  document.getElementById('phTags').innerHTML=c.tags.map(t=>`<div class="ptag-sm" style="border-color:${c.main}33;color:${c.main};background:${c.glow2}">${t}</div>`).join('');
+  document.getElementById('rsiV').textContent=c.rsi;
+  document.getElementById('bw').style.display=c.btcWarn?'block':'none';
+  document.getElementById('u4').style.color=c.main;
+  document.getElementById('abtn').style.borderColor=c.main;
+  document.getElementById('abtn').style.color=c.main;
+  document.getElementById('abtn').style.background=c.glow2;
+  document.querySelectorAll('.stitle').forEach(el=>{
+    el.style.setProperty('--accent',c.main);
+  });
+  // reset result
+  document.getElementById('resultArea').innerHTML='';
+}
+
+function tu(tf){document.getElementById('f'+tf).click();}
+function hu(tf,e){
+  const f=e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=ev=>{
+    imgs[tf]=ev.target.result;
+    const z=document.getElementById('z'+tf);
+    z.classList.add('done');
+    z.querySelectorAll('.uz-prev,.uz-ok').forEach(el=>el.remove());
+    const p=document.createElement('div'); p.className='uz-prev';
+    p.style.backgroundImage=`url(${ev.target.result})`;
+    const v=document.createElement('div'); v.className='uz-ok'; v.textContent='✓';
+    z.appendChild(p); z.appendChild(v);
+  };
+  rd.readAsDataURL(f);
+}
+
+function b64(d){return d.split(',')[1];}
+function mime(d){return d.split(';')[0].split(':')[1];}
+
+function buildPrompt(sess,notes,tfs){
+  const c=cfg();
+  return `Kamu adalah analis trading profesional spesialis ${c.name} dengan sistem PSAR + EMA + RSI + MACD + ATR + SNR + SND.
+
+PAIR: ${c.name} | SESI: ${sess}
+ATR M15: BACA DARI SCREENSHOT M15 (angka di indikator ATR)
+HARGA: BACA DARI SCREENSHOT (sumbu kanan chart)
+CATATAN: ${notes||'tidak ada'} | TF DIUPLOAD: ${tfs}
+
+INDIKATOR: Parabolic SAR (0.030/0.250) · EMA 21 & 55 · RSI 14 (${c.rsi}) · MACD (12,26,9) · ATR 14
+
+TUGAS:
+1. SNR dari H4/H1: temukan RESISTANCE & SUPPORT terdekat. ${c.roundNums}
+2. SND dari H1/M15: DEMAND & SUPPLY zone (level + Fresh/Tested)
+3. CONFLUENCE: SNR H4 + SND M15 overlap?
+4. INDIKATOR: PSAR H4 & M15, EMA H1, RSI H1, MACD M15, Candle M5
+5. SL & TP: ${c.slNote}. TP1 2×ATR (tutup 50%), TP2 3×ATR (tutup 50%). ${c.atrNote}
+6. NEWS: ${c.newsNote} — dalam 2 jam ke depan?
+
+OUTPUT FORMAT WAJIB (jangan ubah nama field):
+SIGNAL: [BUY/SELL/WAIT]
+BIAS: [BULLISH/BEARISH/NEUTRAL]
+ENTRY: [harga]
+SL: [harga] | [jarak] | [alasan]
+TP1: [harga] | [jarak] | R:R 1:[x]
+TP2: [harga] | [jarak] | R:R 1:[x]
+ATR_USED: [nilai]
+KONFIRMASI: [x]/7
+KUALITAS: [A+/A/B/C]
+STARS: [1-5]
+SNR_RESISTANCE: [harga] | [alasan]
+SNR_SUPPORT: [harga] | [alasan]
+SND_SUPPLY: [bawah]-[atas] | [Fresh/Tested]
+SND_DEMAND: [bawah]-[atas] | [Fresh/Tested]
+CONFLUENCE: [Ya/Tidak] | [area]
+POSISI_HARGA: [Di zona/Mendekati/Di tengah]
+PSAR_H4: [Di bawah candle - Bullish / Di atas candle - Bearish]
+EMA_STATUS: [Bullish/Bearish/Ranging]
+RSI_H1: [angka] | [atas/bawah 50]
+PSAR_M15: [Baru flip X candle / Belum flip]
+MACD_M15: [Bull cross/Bear cross/Divergence/Flat]
+ANALISA_LENGKAP:
+[5-8 kalimat bahasa Indonesia: kondisi trend, posisi vs zona SNR/SND, kekuatan signal, saran manajemen, warning]
+NEWS_RISK: [Ada/Tidak ada]
+
+Jika tidak valid → SIGNAL: WAIT + jelaskan kondisi yg harus terpenuhi. Bahasa Indonesia, lugas.`;
+}
+
+async function run(){
+  const cnt=Object.values(imgs).filter(v=>v).length;
+  if(!cnt){alert('Upload minimal 1 screenshot chart dulu!');return;}
+  const c=cfg();
+  const sess=document.getElementById('session').value;
+  const notes=document.getElementById('notes').value;
+  const btn=document.getElementById('abtn');
+  btn.disabled=true; btn.classList.add('loading');
+  btn.innerHTML='<span class="btn-i">⏳</span> Menganalisa...';
+
+  // Show loading
+  document.getElementById('resultArea').innerHTML=`
+    <div class="stitle">Proses Analisa</div>
+    <div class="loading-card">
+      <div class="ring-wrap">
+        <svg viewBox="0 0 64 64">
+          <circle class="rt" cx="32" cy="32" r="28"/>
+          <circle class="rf" id="rf" cx="32" cy="32" r="28"/>
+        </svg>
+      </div>
+      <div class="lh" id="lh">Menganalisa ${pair==='gold'?'Gold':'Bitcoin'}...</div>
+      <div class="lsteps">
+        <div class="ls" id="l1">▸ Membaca struktur candle H4...</div>
+        <div class="ls" id="l2">▸ Mengidentifikasi zona SNR...</div>
+        <div class="ls" id="l3">▸ Mengidentifikasi zona SND...</div>
+        <div class="ls" id="l4">▸ Analisa PSAR + EMA alignment...</div>
+        <div class="ls" id="l5">▸ Cek RSI + MACD momentum...</div>
+        <div class="ls" id="l6">▸ Hitung SL & TP via ATR...</div>
+        <div class="ls" id="l7">▸ Menyusun laporan analisa...</div>
+      </div>
+    </div>`;
+
+  // Color ring
+  const rf=document.getElementById('rf');
+  if(rf) rf.style.stroke=c.main;
+
+  // Animate steps
+  const sids=['l1','l2','l3','l4','l5','l6','l7'];
+  let si=0;
+  const iv=setInterval(()=>{
+    if(si<sids.length){
+      const el=document.getElementById(sids[si]);
+      if(el){el.classList.add('on'); el.style.color=c.main;}
+      si++;
+    }
+  },650);
+
+  // Build parts
+  const parts=[];
+  const tfl={h4:'H4 (Trend Utama)',h1:'H1 (EMA+RSI)',m15:'M15 (PSAR+Entry)',m5:'M5 (Konfirmasi)'};
+  for(const[tf,url] of Object.entries(imgs)){
+    if(url){
+      parts.push({type:'image',source:{type:'base64',media_type:mime(url),data:b64(url)}});
+      parts.push({type:'text',text:`[Chart ${c.name} — ${tfl[tf]}]`});
+    }
+  }
+  const tfs=Object.entries(imgs).filter(([,v])=>v).map(([k])=>k.toUpperCase()).join(', ');
+  parts.push({type:'text',text:buildPrompt(sess,notes,tfs)});
+
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:parts}]})
+    });
+    clearInterval(iv);
+    const data=await res.json();
+    const raw=data.content.map(c=>c.text||'').join('\n');
+    renderResult(raw,sess);
+  }catch(err){
+    clearInterval(iv);
+    document.getElementById('resultArea').innerHTML=`
+      <div class="loading-card" style="gap:12px">
+        <div style="font-size:36px">⚠️</div>
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--red)">Analisa Gagal</div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7">${err.message}</div>
+      </div>`;
+  }finally{
+    btn.disabled=false; btn.classList.remove('loading');
+    btn.innerHTML='<span class="btn-i">⚡</span> Analisa Lagi';
+  }
+}
+
+function pf(t,f){const m=t.match(new RegExp(f+':\\s*(.+)','i'));return m?m[1].trim():null;}
+function ib(t){return t&&(t.toLowerCase().includes('bullish')||t.toLowerCase().includes('bawah')||t.toLowerCase().includes('bull'));}
+function ir(t){return t&&(t.toLowerCase().includes('bearish')||t.toLowerCase().includes('atas')||t.toLowerCase().includes('bear'));}
+function ic(t){return ib(t)?'bull':ir(t)?'bear':'';}
+
+function renderResult(raw,sess){
+  const c=cfg();
+  const signal   = pf(raw,'SIGNAL')||'WAIT';
+  const bias     = pf(raw,'BIAS')||'-';
+  const entry    = pf(raw,'ENTRY')||'-';
+  const sl       = pf(raw,'SL')||'-';
+  const tp1      = pf(raw,'TP1')||'-';
+  const tp2      = pf(raw,'TP2')||'-';
+  const atrU     = pf(raw,'ATR_USED')||'-';
+  const konf     = pf(raw,'KONFIRMASI')||'-';
+  const kual     = pf(raw,'KUALITAS')||'-';
+  const stars    = Math.min(parseInt(pf(raw,'STARS')||'3'),5);
+  const snrR     = pf(raw,'SNR_RESISTANCE')||'-';
+  const snrS     = pf(raw,'SNR_SUPPORT')||'-';
+  const sndSup   = pf(raw,'SND_SUPPLY')||'-';
+  const sndDem   = pf(raw,'SND_DEMAND')||'-';
+  const conf     = pf(raw,'CONFLUENCE')||'-';
+  const pos      = pf(raw,'POSISI_HARGA')||'-';
+  const psarH4   = pf(raw,'PSAR_H4')||'-';
+  const emaS     = pf(raw,'EMA_STATUS')||'-';
+  const rsiH1    = pf(raw,'RSI_H1')||'-';
+  const psarM15  = pf(raw,'PSAR_M15')||'-';
+  const macdM15  = pf(raw,'MACD_M15')||'-';
+  const news     = pf(raw,'NEWS_RISK')||'-';
+  const analisa  = (()=>{const m=raw.match(/ANALISA_LENGKAP:\s*([\s\S]+?)(?=NEWS_RISK:|$)/i);return m?m[1].trim():raw.slice(0,600);})();
+
+  const sigC = signal.includes('BUY')?'buy':signal.includes('SELL')?'sell':'wait';
+  const sigColor = sigC==='buy'?'var(--green)':sigC==='sell'?'var(--red)':'var(--accent)';
+  const now = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+  const starsH = '★'.repeat(stars)+'☆'.repeat(5-stars);
+  const num = parseInt(konf)||3; const pct=num/7;
+  const dash=176; const off=dash-(dash*pct);
+  const newsIsRisk = news.toLowerCase().includes('ada')&&!news.toLowerCase().includes('tidak ada');
+
+  const html=`
+<div class="fadein" id="resultWrap" data-raw="">
+
+  <div class="stitle">Signal & Hasil</div>
+
+  <!-- SIGNAL HERO -->
+  <div class="sig-hero ${sigC}">
+    <div class="sh-top">
+      <div>
+        <div class="sig-lbl">Signal · ${pair==='gold'?'XAU/USD':'BTC/USD'} · ${now} WIB</div>
+        <div class="sig-word ${sigC}">${signal}</div>
+        <div class="sig-sub">${bias} &nbsp;·&nbsp; ${sess}</div>
+      </div>
+      <div class="score-c">
+        <div class="score-r">
+          <svg viewBox="0 0 64 64">
+            <circle fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="4" cx="32" cy="32" r="28"/>
+            <circle fill="none" stroke="${sigColor}" stroke-width="4" stroke-linecap="round"
+              stroke-dasharray="${dash}" stroke-dashoffset="${off}"
+              cx="32" cy="32" r="28" transform="rotate(-90 32 32)"/>
+          </svg>
+          <div class="score-v">${num}<span style="font-size:9px;color:var(--text3)">/7</span></div>
+        </div>
+        <div class="score-lb">Konfirmasi</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TRADE LEVELS -->
+  <div class="tgrid">
+    <div class="tbox te">
+      <div class="tbl">Entry Area</div>
+      <div class="tbv ac">${entry}</div>
+    </div>
+    <div class="tbox ts">
+      <div class="tbl">Stop Loss</div>
+      <div class="tbv re">${sl.split('|')[0].trim()}</div>
+      <div class="tbs">${sl.split('|')[1]?.trim()||''}</div>
+    </div>
+    <div class="tbox tp">
+      <div class="tbl">TP 1 <span style="color:var(--text3);font-size:8px">(tutup 50%)</span></div>
+      <div class="tbv gr">${tp1.split('|')[0].trim()}</div>
+      <div class="tbs">${tp1.split('|')[1]?.trim()||''}</div>
+    </div>
+    <div class="tbox tp">
+      <div class="tbl">TP 2 <span style="color:var(--text3);font-size:8px">(tutup 50%)</span></div>
+      <div class="tbv gr">${tp2.split('|')[0].trim()}</div>
+      <div class="tbs">${tp2.split('|')[1]?.trim()||''}</div>
+    </div>
+    <div class="tbox tn">
+      <div class="tbl">ATR Terbaca</div>
+      <div class="tbv or sm">${atrU}</div>
+      <div class="tbs">Dari chart M15</div>
+    </div>
+    <div class="tbox ${newsIsRisk?'ts':'tn'}">
+      <div class="tbl">News Risk</div>
+      <div class="tbv sm" style="color:${newsIsRisk?'var(--red)':'var(--green)'}">${news}</div>
+    </div>
+  </div>
+
+  <!-- ZONES -->
+  <div class="stitle">Zona SNR & SND</div>
+  <div class="zgrid">
+    <div class="zbox res"><div class="zbl">SNR Resistance</div><div class="zbv re">${snrR.split('|')[0].trim()}</div><div class="zbs">${snrR.split('|')[1]?.trim()||''}</div></div>
+    <div class="zbox sup"><div class="zbl">SNR Support</div><div class="zbv gr">${snrS.split('|')[0].trim()}</div><div class="zbs">${snrS.split('|')[1]?.trim()||''}</div></div>
+    <div class="zbox supply"><div class="zbl">SND Supply Zone</div><div class="zbv re">${sndSup.split('|')[0].trim()}</div><div class="zbs">${sndSup.split('|')[1]?.trim()||''}</div></div>
+    <div class="zbox demand"><div class="zbl">SND Demand Zone</div><div class="zbv gr">${sndDem.split('|')[0].trim()}</div><div class="zbs">${sndDem.split('|')[1]?.trim()||''}</div></div>
+    <div class="zbox conf"><div class="zbl">Confluence Zone</div><div class="zbv pu">${conf}</div></div>
+    <div class="zbox pos"><div class="zbl">Posisi Harga</div><div class="zbv bl">${pos}</div></div>
+  </div>
+
+  <!-- INDIKATOR -->
+  <div class="stitle">Status Indikator</div>
+  <div class="igrid">
+    <div class="ibox ${ic(psarH4)}"><div class="iico">${ib(psarH4)?'🟡':ir(psarH4)?'🔴':'⚪'}</div><div><div class="inm">PSAR H4</div><div class="ivl">${psarH4}</div></div></div>
+    <div class="ibox ${ic(emaS)}"><div class="iico">${ib(emaS)?'📈':ir(emaS)?'📉':'➡️'}</div><div><div class="inm">EMA 21/55</div><div class="ivl">${emaS}</div></div></div>
+    <div class="ibox ${ic(rsiH1)}"><div class="iico">🔵</div><div><div class="inm">RSI H1</div><div class="ivl">${rsiH1}</div></div></div>
+    <div class="ibox ${ic(psarM15)}"><div class="iico">${ib(psarM15)?'🟢':ir(psarM15)?'🔴':'⚪'}</div><div><div class="inm">PSAR M15</div><div class="ivl">${psarM15}</div></div></div>
+    <div class="ibox ${ic(macdM15)}" style="grid-column:1/-1"><div class="iico">⚡</div><div><div class="inm">MACD M15</div><div class="ivl">${macdM15}</div></div></div>
+  </div>
+
+  <!-- ANALISA -->
+  <div class="stitle">Analisa Lengkap</div>
+  <div class="acard">${analisa}</div>
+
+  <!-- FOOTER -->
+  <div class="rfooter">
+    <div class="fchip"><span style="color:var(--text3)">Kualitas</span>&nbsp;<strong style="color:var(--accent)">${kual}</strong></div>
+    <div class="fchip"><span class="fstars">${starsH}</span></div>
+    <div class="fchip"><span style="color:var(--text3)">Max Risk</span>&nbsp;<strong>1–2%</strong></div>
+    <button class="cbtn" onclick="copyR()">⧉ Copy</button>
+  </div>
+  <div class="disc-sm">⚠ Educational purpose only · Bukan saran finansial · Selalu gunakan risk management</div>
+</div>`;
+
+  document.getElementById('resultArea').innerHTML=html;
+  document.getElementById('resultWrap').dataset.raw=raw;
+  // Scroll ke result
+  setTimeout(()=>document.getElementById('resultWrap').scrollIntoView({behavior:'smooth',block:'start'}),100);
+}
+
+function copyR(){
+  const el=document.getElementById('resultWrap');
+  if(el&&el.dataset.raw){
+    navigator.clipboard.writeText(el.dataset.raw);
+    const btns=document.querySelectorAll('.cbtn');
+    btns.forEach(b=>{
+      const p=b.textContent; b.textContent='✓ Copied!';
+      b.style.borderColor='var(--accent)'; b.style.color='var(--accent)';
+      setTimeout(()=>{b.textContent=p;b.style.borderColor='';b.style.color='';},2000);
+    });
+  }
+}
+
+// Init
+sp('gold');
+</script>
+</body>
+</html>

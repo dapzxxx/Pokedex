@@ -19,7 +19,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            window.statusBarColor = Color.parseColor("#6d28d9")
+            window.statusBarColor = Color.parseColor("#0000ff")
         }
 
         webView = WebView(this)

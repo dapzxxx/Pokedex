@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.dapz.tradibg"
+    namespace = "com.dapz.forex"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.dapz.tradibg"
+        applicationId = "com.dapz.forex"
         minSdk = 23
         targetSdk = 34
         versionCode = 1
